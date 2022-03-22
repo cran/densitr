@@ -23,16 +23,15 @@
 #' ## remove trimming failures
 #' dp.nofailures <- remove_trim_failures(dp.trimmed)
 #' }
-remove_trim_failures  <- function(dp.trimmed) {
+remove_trim_failures <- function(dp.trimmed) {
   if (names(dp.trimmed[2]) != "report") {
     stop("not report attached, trim again with rreport = TRUE")
   }
-  failures.start <- dp.trimmed$report[dp.trimmed$report$detection.start %in% "failed",]$ID
+  failures.start <- dp.trimmed$report[dp.trimmed$report$detection.start %in% "failed", ]$ID
   dps <- dp.trimmed$dp
   dp.subsetted <- dps[!(names(dps) %in% failures.start)]
-  if("detection.end" %in% colnames(dp.trimmed$report))
-  {
-    failures.end <- dp.trimmed$report[dp.trimmed$report$detection.end %in% "failed",]$ID
+  if ("detection.end" %in% colnames(dp.trimmed$report)) {
+    failures.end <- dp.trimmed$report[dp.trimmed$report$detection.end %in% "failed", ]$ID
     dp.subsetted <- dps[!(names(dps) %in% failures.end)]
   }
   return(dp.subsetted)
@@ -65,19 +64,19 @@ remove_trim_failures  <- function(dp.trimmed) {
 #' ## separate trimming failures
 #' dp.nofailures <- separate_trim_failures(dp.trimmed)
 #' }
-separate_trim_failures  <- function(dp.trimmed) {
+separate_trim_failures <- function(dp.trimmed) {
   if (names(dp.trimmed[2]) != "report") {
     stop("not report attached, trim again with rreport = TRUE")
   }
   dps <- dp.trimmed$dp
-  failures.start <- dp.trimmed$report[dp.trimmed$report$detection.start %in% "failed",]$ID
+  failures.start <- dp.trimmed$report[dp.trimmed$report$detection.start %in% "failed", ]$ID
   if (length(failures.start) > 0) {
     dp.start <- dps[(names(dps) %in% failures.start)]
   } else {
     dp.start <- list()
   }
-  if("detection.end" %in% colnames(dp.trimmed$report)) {
-    failures.end <- dp.trimmed$report[dp.trimmed$report$detection.end %in% "failed",]$ID
+  if ("detection.end" %in% colnames(dp.trimmed$report)) {
+    failures.end <- dp.trimmed$report[dp.trimmed$report$detection.end %in% "failed", ]$ID
     dp.end <- dps[(names(dps) %in% failures.end)]
   } else {
     dp.end <- list()
@@ -109,40 +108,42 @@ separate_trim_failures  <- function(dp.trimmed) {
 #' @export
 #' @examples
 #' ## load a single file
-#' dp  <- dpload(system.file("extdata", "00010001.dpa", package = "densitr"))
+#' dp <- dpload(system.file("extdata", "00010001.dpa", package = "densitr"))
 #' ## get a starting point on the plot
 #' \donttest{
 #' manual_trim_detect(dp)
 #' }
 manual_trim_detect <- function(failure, label = "") {
-  x  <- NULL
-  graphics::plot(failure$data$amplitude, type = "l",
-                 xlab = paste0("Drilling depth [", x$footer$xUnit, "]"),
-                 ylab = paste0("Resistograph density [", x$footer$yUnit, "]"),
-                 main = paste0("Density profile ID: ",failure$footer$ID," ",label))
+  x <- NULL
+  graphics::plot(failure$data$amplitude,
+    type = "l",
+    xlab = paste0("Drilling depth [", x$footer$xUnit, "]"),
+    ylab = paste0("Resistograph density [", x$footer$yUnit, "]"),
+    main = paste0("Density profile ID: ", failure$footer$ID, " ", label)
+  )
   message("\n[click on graph to pick a vertical line]")
   cutoff <- tryCatch(
-  {
-    clicked <- graphics::locator(1)
-    xl <- clicked$x
-    if ((xl < 0) | (xl > nrow(failure$data)) ){
-      stop()
+    {
+      clicked <- graphics::locator(1)
+      xl <- clicked$x
+      if ((xl < 0) | (xl > nrow(failure$data))) {
+        stop()
+      }
+      xl
+    },
+    error = function(e) {
+      if (label == " - PICK START") {
+        1
+      } else if (label == " - PICK STOP") {
+        nrow(failure$data)
+      } else {
+        NA
+      }
     }
-    xl
-  },
-  error = function(e){
-    if (label == " - PICK START") {
-      1
-    } else if (label == " - PICK STOP") {
-      nrow(failure$data)
-    } else {
-      NA
-    }
-  }
   )
-  graphics::abline(v=cutoff, col="red",lwd=3, lty=2)
+  graphics::abline(v = cutoff, col = "red", lwd = 3, lty = 2)
   if (is.numeric(cutoff)) {
-    return(round(cutoff,0))
+    return(round(cutoff, 0))
   } else {
     return(cutoff)
   }
@@ -157,10 +158,7 @@ manual_trim_detect <- function(failure, label = "") {
 #' density profiles for each failure in trim detection sequentially.
 #' The plot title will display whether you are selection start or end
 #' positions. Use your mouse to select starting/ending point on the
-#' plot, your selection will then be displayed on the plot. Use keys
-#' y/n to confirm selection, pressing n will restart the selection
-#' process. The selection can be repeated once after pressing n, next
-#' n will stop the process and it has to be restarted manually. Will
+#' plot, your selection will then be displayed on the plot. Will
 #' return a complete list, both with the non-failed automatically
 #' trimmed dp objects and those corrected manually. The automatic
 #' trim functions should be called with the option
@@ -182,38 +180,103 @@ manual_trim_detect <- function(failure, label = "") {
 #' ## manually correct the failures
 #' dp.corrected <- correct_failures(dp.trimmed)
 #' }
-correct_failures  <- function(dp.trimmed) {
-  failures  <-  separate_trim_failures(dp.trimmed)
-  message("\nfound:\n",
-          length(failures$failures.start),
-          " start failures \n",
-          length(failures$failures.end),
-          " end failures")
+correct_failures <- function(dp.trimmed) {
+  failures <- separate_trim_failures(dp.trimmed)
+  message(
+    "\nfound:\n",
+    length(failures$failures.start),
+    " start failures \n",
+    length(failures$failures.end),
+    " end failures"
+  )
   if (length(failures$failures.start) > 0) {
     cutoffs.start <-
       lapply(failures$failures.start, manual_trim_detect, label = " - PICK START")
-    for (i in 1:length(failures$failures.start)){
-      start <- unlist(cutoffs.start[names(failures$failures.start[i])],use.names = F)
-      end  <- nrow(dp.trimmed$dp[names(failures$failures.start[i])][[1]]$data)
-      dp.trimmed$dp[names(failures$failures.start[i])][[1]]$data  <- utils::tail(dp.trimmed$dp[names(failures$failures.start[i])][[1]]$data, -(start - 1))
+    for (i in 1:length(failures$failures.start)) {
+      start <- unlist(cutoffs.start[names(failures$failures.start[i])], use.names = F)
+      ## end <- nrow(dp.trimmed$dp[names(failures$failures.start[i])][[1]]$data)
+      ## for some reason, calling head or tail with a -0 as argument returns NA
+      ## just skip to next iteration if this is the case
+      if (start > 1) {
+        dp.trimmed$dp[names(failures$failures.start[i])][[1]]$data <- utils::tail(dp.trimmed$dp[names(failures$failures.start[i])][[1]]$data, -(start - 1))
+      }
+      next()
     }
   }
   message("\nstart corrections done, starting end corrections\n")
   if (length(failures$failures.end) > 0) {
     cutoffs.end <- lapply(failures$failures.end, manual_trim_detect, label = " - PICK STOP")
-    for (i in 1:length(failures$failures.end)){
-      end.old  <-
+    for (i in 1:length(failures$failures.end)) {
+      end.old <-
         nrow(dp.trimmed$dp[names(failures$failures.end[i])][[1]]$data)
 
       end.new <-
-        unlist(cutoffs.end[names(failures$failures.end[i])],use.names = F)
+        unlist(cutoffs.end[names(failures$failures.end[i])], use.names = F)
 
-      diff  <- end.old - end.new
+      diff <- end.old - end.new
       ## remove the last X values
-      dp.trimmed$dp[names(failures$failures.end[i])][[1]]$data   <-
-        utils::head(dp.trimmed$dp[names(failures$failures.end[i])][[1]]$data, -diff)
+      if (diff > 0) {
+        dp.trimmed$dp[names(failures$failures.end[i])][[1]]$data <-
+          utils::head(dp.trimmed$dp[names(failures$failures.end[i])][[1]]$data, -diff)
+      }
+      next()
     }
   }
   message("\nall corrections done\n")
   return(dp.trimmed$dp)
+}
+
+#' Manually trim a list of density profiles
+#'
+#' This function will take a list of dp objects and interactively ask
+#' the user to assign starting/ending points manually for all density
+#' profiles in sequentially. Used as alternative to automatic trim
+#' functions. The plot title will display whether you are selecting
+#' start or end position. Use your mouse to select starting/ending
+#' points on the plot.
+#'
+#' @param dp.list A list of dp objects.
+#' @return A list of trimmed density profiles.
+#' @seealso dptrim, dptriml, manual_trim_detect
+#' @export
+#' @examples
+#' ## load all dp files
+#' \donttest{
+#' dp.list <- dpload(dp.directory = system.file("extdata", package = "densitr"))
+#' ## manually trim the list
+#' dp.trimmed <- trim_manually(dp.list)
+#' }
+trim_manually <- function(dp.list) {
+  if (is.list(dp.list) && !inherits(dp.list[[1]], "dp")) {
+    stop("not a dp list")
+  }
+  cutoffs.start <-
+    lapply(dp.list, manual_trim_detect, label = " - PICK START")
+  message("\nstart corrections done, starting end corrections\n")
+  cutoffs.end <- lapply(dp.list, manual_trim_detect, label = " - PICK STOP")
+  for (i in 1:length(dp.list)) {
+    start <- unlist(cutoffs.start[[i]], use.names = F)
+    end.old <-
+      nrow(dp.list[[i]]$data)
+    end.new <-
+      unlist(cutoffs.end[[i]], use.names = F)
+
+    diff <- end.old - end.new
+
+    ## for some reason, calling head or tail with a -0 as argument returns NA
+    ## just skip to next iteration if this is the case
+    if (diff > 0) {
+      dp.list[[i]]$data <-
+        utils::head(dp.list[[i]]$data, -diff)
+    }
+
+    if (start > 1) {
+      dp.list[[i]]$data <-
+        utils::tail(dp.list[[i]]$data, -(start - 1))
+    }
+
+    next()
+  }
+  message("\nall corrections done\n")
+  return(dp.list)
 }

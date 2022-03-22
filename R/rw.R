@@ -11,7 +11,7 @@
 #' @export
 #' @examples
 #' ## load a single file
-#' dp  <- dpload(system.file("extdata", "00010001.dpa", package = "densitr"))
+#' dp <- dpload(system.file("extdata", "00010001.dpa", package = "densitr"))
 #' ## trim and detrend the measurement
 #' dp.trimmed <- dptrim(dp)
 #' dp.detrended <- dpdetrend(dp.trimmed, type = "gam")
@@ -19,13 +19,14 @@
 #' rings <- dprings(dp.detrended)
 #' ## get tree ring widths:
 #' get_RW(rings)
-get_RW  <- function(rings) {
+get_RW <- function(rings) {
   if (is.data.frame(rings) == FALSE |
         all(colnames(rings) == c("value", "type", "amplitude")) == FALSE) {
     stop("not a result of densitr::dprings()")
   }
-  return(tryCatch(diff(rings[rings$type == "peak",]$value,
-                       error=function(e) NULL)))
+  return(tryCatch(diff(rings[rings$type == "peak", ]$value,
+                       error = function(e) NULL
+                       )))
 }
 
 #' Automatically identify tree rings in a density profile
@@ -81,7 +82,7 @@ get_RW  <- function(rings) {
 #' @examples
 #' \donttest{
 #' ## load a single file
-#' dp  <- dpload(system.file("extdata", "00010001.dpa", package = "densitr"))
+#' dp <- dpload(system.file("extdata", "00010001.dpa", package = "densitr"))
 #' ## trim and detrend the measurement
 #' dp.trimmed <- dptrim(dp)
 #' dp.detrended <- dpdetrend(dp.trimmed, type = "gam")
@@ -92,58 +93,81 @@ get_RW  <- function(rings) {
 #' ## get tree ring widths:
 #' get_RW(rings)
 #' }
-dprings  <- function(dp, pps = 200, threshold.sd = 0,
-                     return.plot = FALSE, smooth = FALSE, span = 0.01) {
+dprings <- function(dp, pps = 200, threshold.sd = 0,
+                    return.plot = FALSE, smooth = FALSE, span = 0.01) {
+  if (!inherits(dp, "dp")) {
+    stop("not a dp object")
+  }
   if (smooth == FALSE) {
     cutoff <- mean(dp$data$amplitude, na.rm = TRUE) +
       (threshold.sd * stats::sd(dp$data$amplitude, na.rm = TRUE))
     pk <- find_peaks(dp$data$amplitude, m = pps / 2)
     ## delete all peaks below threshold, valleys will be removed by remove_duplicates()
     pk <- pk[dp$data$amplitude[pk] > cutoff]
-    val  <- find_peaks(-dp$data$amplitude, m = pps / 2)
-    values  <- rbind(data.frame(value = pk, type = "peak"),
-                     data.frame(value = val, type = "valley"))
-    values  <- values[order(values$value),]
+    val <- find_peaks(-dp$data$amplitude, m = pps / 2)
+    values <- rbind(
+      data.frame(value = pk, type = "peak"),
+      data.frame(value = val, type = "valley")
+    )
+    values <- values[order(values$value), ]
     values$amplitude <- dp$data$amplitude[values$value]
   } else {
-    y.smooth <- stats::loess(amplitude ~ position, data=dp$data, span=span)$fitted
+    y.smooth <- stats::loess(amplitude ~ position, data = dp$data, span = span)$fitted
     cutoff <- mean(y.smooth, na.rm = TRUE) +
       (threshold.sd * stats::sd(y.smooth, na.rm = TRUE))
     pk <- find_peaks(y.smooth, m = pps / 2)
     ## delete all peaks below threshold, valleys will be removed by remove_duplicates()
     pk <- pk[y.smooth[pk] > cutoff]
-    val  <- find_peaks(-y.smooth, m = pps / 2)
-    values  <- rbind(data.frame(value = pk, type = "peak"),
-                     data.frame(value = val, type = "valley"))
-    values  <- values[order(values$value),]
+    val <- find_peaks(-y.smooth, m = pps / 2)
+    values <- rbind(
+      data.frame(value = pk, type = "peak"),
+      data.frame(value = val, type = "valley")
+    )
+    values <- values[order(values$value), ]
     values$amplitude <- y.smooth[values$value]
   }
   values2 <- remove_duplicates(values)
-  removed <- values[!(values$value %in% values2$value),]
+  removed <- values[!(values$value %in% values2$value), ]
   if (return.plot == TRUE) {
     if (smooth == FALSE) {
-      graphics::plot(x=dp$data$position,y=dp$data$amplitude, type = "l",
-                     xlab = paste0("Drilling depth [", dp$footer$xUnit[1], "]"),
-                     ylab = paste0("Resistograph density [", dp$footer$yUnit[1], "]"),
-                     main = paste0("Density profile ID: ",dp$footer$ID))
-      graphics::points(x = dp$data$position[pk],
-                       y = dp$data$amplitude[pk], col = "blue", pch = 16)
-      graphics::points(x = dp$data$position[val],
-                       y = dp$data$amplitude[val], col = "green", pch = 16)
-      graphics::points(x = dp$data$position[removed$value],
-                       y = removed$amplitude, col = "red", cex = 2, pch = 16)
+      graphics::plot(
+        x = dp$data$position, y = dp$data$amplitude, type = "l",
+        xlab = paste0("Drilling depth [", dp$footer$xUnit[1], "]"),
+        ylab = paste0("Resistograph density [", dp$footer$yUnit[1], "]"),
+        main = paste0("Density profile ID: ", dp$footer$ID)
+      )
+      graphics::points(
+        x = dp$data$position[pk],
+        y = dp$data$amplitude[pk], col = "blue", pch = 16
+      )
+      graphics::points(
+        x = dp$data$position[val],
+        y = dp$data$amplitude[val], col = "green", pch = 16
+      )
+      graphics::points(
+        x = dp$data$position[removed$value],
+        y = removed$amplitude, col = "red", cex = 2, pch = 16
+      )
       graphics::abline(h = cutoff, col = "black", lty = 2)
     } else {
-      graphics::plot(x=dp$data$position,y=y.smooth, type = "l",
-                     xlab = paste0("Drilling depth [", dp$footer$xUnit[1], "]"),
-                     ylab = paste0("Resistograph density [", dp$footer$yUnit[1], "]"),
-                     main = paste0("Density profile ID: ",dp$footer$ID))
-      graphics::points(x = dp$data$position[pk],
-                       y = y.smooth[pk], col = "blue", pch = 16)
-      graphics::points(x = dp$data$position[val],
-                       y = y.smooth[val], col = "green", pch = 16)
-      graphics::points(x = dp$data$position[removed$value],
-                       y = removed$amplitude, col = "red", cex = 2, pch = 16)
+      graphics::plot(
+        x = dp$data$position, y = y.smooth, type = "l",
+        xlab = paste0("Drilling depth [", dp$footer$xUnit[1], "]"),
+        ylab = paste0("Resistograph density [", dp$footer$yUnit[1], "]"),
+        main = paste0("Density profile ID: ", dp$footer$ID)
+      )
+      graphics::points(
+        x = dp$data$position[pk],
+        y = y.smooth[pk], col = "blue", pch = 16
+      )
+      graphics::points(
+        x = dp$data$position[val],
+        y = y.smooth[val], col = "green", pch = 16
+      )
+      graphics::points(
+        x = dp$data$position[removed$value],
+        y = removed$amplitude, col = "red", cex = 2, pch = 16
+      )
       graphics::abline(h = cutoff, col = "black", lty = 2)
     }
     p <- grDevices::recordPlot()
@@ -156,27 +180,27 @@ dprings  <- function(dp, pps = 200, threshold.sd = 0,
 ## Will take a df of rings and compare them one by one. Peak should
 ## always be followed by a valley, this function returns those
 ## duplicating values
-get_duplicates  <- function(values){
+get_duplicates <- function(values) {
   removals <- c()
-  for (i in 1:(nrow(values) - 1)){
-     k <- i + 1
-      if (values[i,]$type == values[k,]$type) {
-        ## compare two valleys, keep the lowest
-        if ((values[i,]$type == "valley") && (values[k,]$type == "valley")) {
-          if (values[i,]$amplitude <= values[k,]$amplitude) {
-            removals  <- c(removals, k)
-          } else {
-            removals  <- c(removals, i)
-          }
-        } else if ((values[i,]$type == "peak") && (values[k,]$type == "peak")) {
-          ## compare two peaks, take the higher one
-          if (values[i,]$amplitude >= values[k,]$amplitude) {
-            removals  <- c(removals, k)
-          } else {
-            removals  <- c(removals, i)
-          }
+  for (i in 1:(nrow(values) - 1)) {
+    k <- i + 1
+    if (values[i, ]$type == values[k, ]$type) {
+      ## compare two valleys, keep the lowest
+      if ((values[i, ]$type == "valley") && (values[k, ]$type == "valley")) {
+        if (values[i, ]$amplitude <= values[k, ]$amplitude) {
+          removals <- c(removals, k)
+        } else {
+          removals <- c(removals, i)
         }
-     }
+      } else if ((values[i, ]$type == "peak") && (values[k, ]$type == "peak")) {
+        ## compare two peaks, take the higher one
+        if (values[i, ]$amplitude >= values[k, ]$amplitude) {
+          removals <- c(removals, k)
+        } else {
+          removals <- c(removals, i)
+        }
+      }
+    }
   }
   return(removals)
 }
@@ -189,11 +213,11 @@ get_duplicates  <- function(values){
 remove_duplicates <- function(values) {
   success <- FALSE
   while (!success) {
-     duplicates  <- get_duplicates(values)
-     if (length(duplicates) > 0) {
-       values <- values[-duplicates ,]
-     }
-      success <-  length(duplicates) == 0
+    duplicates <- get_duplicates(values)
+    if (length(duplicates) > 0) {
+      values <- values[-duplicates, ]
+    }
+    success <- length(duplicates) == 0
   }
   return(values)
 }
@@ -203,14 +227,18 @@ remove_duplicates <- function(values) {
 ## used for peak detection in dprings.
 ## https://github.com/stas-g/findPeaks
 ## https://stats.stackexchange.com/questions/22974/how-to-find-local-peaks-valleys-in-a-series-of-data/164830#164830
-find_peaks <- function (x, m = 3){
+find_peaks <- function(x, m = 3) {
   shape <- diff(sign(diff(x, na.pad = FALSE)))
-  pks <- sapply(which(shape < 0), FUN = function(i){
+  pks <- sapply(which(shape < 0), FUN = function(i) {
     z <- i - m + 1
     z <- ifelse(z > 0, z, 1)
     w <- i + m + 1
     w <- ifelse(w < length(x), w, length(x))
-    if(all(x[c(z : i, (i + 2) : w)] <= x[i + 1])) return(i + 1) else return(numeric(0))
+    if (all(x[c(z:i, (i + 2):w)] <= x[i + 1])) {
+      return(i + 1)
+    } else {
+      return(numeric(0))
+    }
   })
   pks <- unlist(pks)
   pks

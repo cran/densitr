@@ -7,16 +7,17 @@ keydown <- function(key) {
     stop()
   } else {
     ## keyPressed  <<- key
-    ##assign("keyPressed", key, inherits = TRUE, envir = .GlobalEnv)
+    ## assign("keyPressed", key, inherits = TRUE, envir = .GlobalEnv)
     assign("keyPressed", key, inherits = TRUE)
   }
 }
 
-readkeygraph <- function(prompt)
-{
-  grDevices::getGraphicsEvent(prompt = prompt,
-                              onKeybd = keydown,
-                              consolePrompt = "[click on graph then follow top prompt to continue]")
+readkeygraph <- function(prompt) {
+  grDevices::getGraphicsEvent(
+    prompt = prompt,
+    onKeybd = keydown,
+    consolePrompt = "[click on graph then follow top prompt to continue]"
+  )
   Sys.sleep(0.01)
   return(keyPressed)
 }
@@ -35,12 +36,13 @@ readkeygraph <- function(prompt)
 #' dp.list <- dpload(dp.directory = system.file("extdata", package = "densitr"))
 #' ## plot trimming the measurements
 #' \donttest{
+#' if(interactive()){
 #' plot_trimming(dp.list)
-#' }
-plot_trimming  <- function(dp.list){
-  for (i in 1:length(dp.list)){
+#' }}
+plot_trimming <- function(dp.list) {
+  for (i in 1:length(dp.list)) {
     print((dptrim(dp.list[[i]], return.plot = T)))
-    keyPressed = readkeygraph(paste0("[any key to continue, q to quit] file ",i,"/",length(dp.list)))
+    keyPressed <- readkeygraph(paste0("[any key to continue, q to quit] file ", i, "/", length(dp.list)))
   }
 }
 
@@ -58,12 +60,13 @@ plot_trimming  <- function(dp.list){
 #' dp.list <- dpload(dp.directory = system.file("extdata", package = "densitr"))
 #' ## trim the measurements
 #' \donttest{
+#' if(interactive()){
 #' plot_start_detection(dp.list)
-#' }
-plot_start_detection  <- function(dp.list){
-  for (i in 1:length(dp.list)){
+#' }}
+plot_start_detection <- function(dp.list) {
+  for (i in 1:length(dp.list)) {
     print((dpdetect_s(dp.list[[i]], return.plot = T)))
-    keyPressed = readkeygraph(paste0("[any key to continue, q to quit] file ",i,"/",length(dp.list)))
+    keyPressed <- readkeygraph(paste0("[any key to continue, q to quit] file ", i, "/", length(dp.list)))
   }
 }
 
@@ -81,12 +84,13 @@ plot_start_detection  <- function(dp.list){
 #' dp.list <- dpload(dp.directory = system.file("extdata", package = "densitr"))
 #' ## trim the measurements
 #' \donttest{
+#' if(interactive()){
 #' plot_end_detection(dp.list)
-#' }
-plot_end_detection  <- function(dp.list){
-  for (i in 1:length(dp.list)){
+#' }}
+plot_end_detection <- function(dp.list) {
+  for (i in 1:length(dp.list)) {
     print((dpdetect_e(dp.list[[i]], return.plot = T)))
-    keyPressed = readkeygraph(paste0("[any key to continue, q to quit] file ",i,"/",length(dp.list)))
+    keyPressed <- readkeygraph(paste0("[any key to continue, q to quit] file ", i, "/", length(dp.list)))
   }
 }
 
@@ -103,14 +107,17 @@ plot_end_detection  <- function(dp.list){
 #' dp.list <- dpload(dp.directory = system.file("extdata", package = "densitr"))
 #' ## trim the measurements
 #' \donttest{
+#' if(interactive()){
 #' plot_all(dp.list)
-#' }
-plot_all  <- function(dp.list){
-  if (is.list(dp.list) == FALSE) {stop("not a list of density profiles")}
-  for (i in 1:length(dp.list)){
-    dp  <- dp.list[[i]]
+#' }}
+plot_all <- function(dp.list) {
+  if (is.list(dp.list) == FALSE) {
+    stop("not a list of density profiles")
+  }
+  for (i in 1:length(dp.list)) {
+    dp <- dp.list[[i]]
     print(graphics::plot(dp))
-    keyPressed = readkeygraph(paste0("[any key to continue, q to quit] file ",i,"/",length(dp.list)))
+    keyPressed <- readkeygraph(paste0("[any key to continue, q to quit] file ", i, "/", length(dp.list)))
   }
 }
 
@@ -130,17 +137,19 @@ plot_all  <- function(dp.list){
 #' \dontrun{
 #' plot_failures(dp.list)
 #' }
-plot_failures  <- function(dp.trimmed){
-  failures  <-  separate_trim_failures(dp.trimmed)
-  failures2  <- union(failures$failures.start, failures$failures.end)
-  names(failures2)  <-  union(names(failures$failures.start), names(failures$failures.end))
-  for (i in 1:length(failures2)){
-    dp  <- failures2[[i]]$data
-    print(graphics::plot(dp$amplitude, type = "l",
-                         xlab = paste0("Drilling depth"),
-               ylab= paste0("Resistograph density"),
-               main = paste0("Resistograph data, trimming failure ",dp$ID[1])))
+plot_failures <- function(dp.trimmed) {
+  failures <- separate_trim_failures(dp.trimmed)
+  failures2 <- union(failures$failures.start, failures$failures.end)
+  names(failures2) <- union(names(failures$failures.start), names(failures$failures.end))
+  for (i in 1:length(failures2)) {
+    dp <- failures2[[i]]$data
+    print(graphics::plot(dp$amplitude,
+      type = "l",
+      xlab = paste0("Drilling depth"),
+      ylab = paste0("Resistograph density"),
+      main = paste0("Resistograph data, trimming failure ", dp$ID[1])
+    ))
 
-    keyPressed = readkeygraph(paste0("[any key to continue, q to quit] file ",i,"/",length(failures2)))
+    keyPressed <- readkeygraph(paste0("[any key to continue, q to quit] file ", i, "/", length(failures2)))
   }
 }
